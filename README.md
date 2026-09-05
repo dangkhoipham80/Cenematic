@@ -175,5 +175,4 @@ These are pre-existing and were left alone deliberately — they are behaviour c
 
 ## Contact
 
-**Email**: [sonnamsonnam402@gmail.com](mailto:sonnamsonnam402@gmail.com)
-**LinkedIn**: [Son Nam Nguyen](https://linkedin.com/in/son-nam-nguyen-0a8094354)
+**Email**: [dangkhoipham80@gmail.com](mailto:dangkhoipham80@gmail.com)
