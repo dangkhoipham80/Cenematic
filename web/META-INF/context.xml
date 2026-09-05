@@ -1,2 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context path="/Cenematic1"/>
+<!-- No `path` attribute: Tomcat 7+ ignores it inside a WAR, and setting it here
+     overrides the deployer's context path. The context name comes from the WAR
+     file name (Cenematic.war -> /Cenematic). -->
+<Context/>

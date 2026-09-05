@@ -11,10 +11,25 @@ import javax.mail.internet.*;
 import java.util.Date;
 
 public class Email {
-    static final String from = "nsn15102004@gmail.com";
-    static final String password = "nhxdqqvczgicigof";
+    // Read from the environment - never commit a real mailbox password.
+    // Set MAIL_USER / MAIL_PASSWORD (a Gmail app password) to enable sending.
+    static final String from = env("MAIL_USER", "");
+    static final String password = env("MAIL_PASSWORD", "");
+
+    private static String env(String key, String fallback) {
+        String value = System.getenv(key);
+        if (value == null || value.isEmpty()) {
+            value = System.getProperty(key);
+        }
+        return (value == null || value.isEmpty()) ? fallback : value;
+    }
 
     public static boolean sendEmail(String to, String tieuDe, String noiDung) {
+        if (from.isEmpty() || password.isEmpty()) {
+            System.out.println("Bỏ qua gửi email: chưa cấu hình MAIL_USER / MAIL_PASSWORD");
+            return false;
+        }
+
         // Properties: khai báo các thuộc tính
         Properties props = new Properties();
         props.put("mail.smtp.host", "smtp.gmail.com"); // SMTP HOST
