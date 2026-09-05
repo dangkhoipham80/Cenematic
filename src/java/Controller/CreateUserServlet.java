@@ -10,7 +10,7 @@ import DTO.User;
 import Utils.AppUrl;
 import Utils.Email;
 import Utils.MaHoa;
-import Utils.SoNgauNhien;
+import Utils.VerificationCode;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Date;
@@ -96,22 +96,9 @@ public class CreateUserServlet extends HttpServlet {
                  user.setIsAdmin(isAdmin);
                 if (khachHangDAO.insert(user) > 0) {
 
-                    // Day so xac thuc
-                    String soNgauNhien = SoNgauNhien.getSoNgauNhien();
-
-                    // Quy dinh thoi gian hieu luc
-                    Date todaysDate = new Date(new java.util.Date().getTime());
-                    Calendar c = Calendar.getInstance();
-                    c.setTime(todaysDate);
-                    c.add(Calendar.DATE, 1);
-                    Date thoGianHieuLucXacThuc = new Date(c.getTimeInMillis());
-
-                    // Trang thai xac thuc = false
-                    boolean trangThaiXacThuc = false;
-
-                    user.setVerificationCode(soNgauNhien);
-                    user.setEffectiveTime(thoGianHieuLucXacThuc);
-                    user.setAuthentication(trangThaiXacThuc);
+                    user.setVerificationCode(VerificationCode.issue());
+                    user.setEffectiveTime(VerificationCode.expiresIn(VerificationCode.SIGNUP_MINUTES));
+                    user.setAuthentication(false);
 
                     if (khachHangDAO.updateVerifyInformation(user) > 0) {
                         // Gui email cho khach hang

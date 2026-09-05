@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.List;
 
 public class UserDAO {
@@ -51,7 +52,7 @@ public List<User> selectAll(int offset, int limit) throws SQLException, ClassNot
             boolean receiveEmail = rs.getBoolean("receive_email");
             String password = rs.getString("password");
             String verificationCode = rs.getString("verificationcode");
-            Date effectiveTime = rs.getDate("effectivetime");
+            Timestamp effectiveTime = rs.getTimestamp("effectivetime");
             boolean authentication = rs.getBoolean("authentication");
             boolean isAdmin = rs.getBoolean("isAdmin");
 
@@ -131,7 +132,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
                     boolean receiveEmail = rs.getBoolean("receive_email");
                     String password = rs.getString("password");
                     String verificationCode = rs.getString("verificationcode");
-                    Date efffectiveTime = rs.getDate("effectivetime");
+                    Timestamp efffectiveTime = rs.getTimestamp("effectivetime");
                     boolean authentication = rs.getBoolean("authentication");
                     boolean isAdmin = rs.getBoolean("isAdmin");
                     result = new User(idAccount, avatar, accountName, firstname, lastname, gender, address, phoneNumber, yob, email, receiveEmail, password, verificationCode, efffectiveTime, authentication, isAdmin);
@@ -184,7 +185,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
                     boolean receiveEmail = rs.getBoolean("receive_email");
                     String password = rs.getString("password");
                     String verificationCode = rs.getString("verificationcode");
-                    Date effectiveTime = rs.getDate("effectivetime");
+                    Timestamp effectiveTime = rs.getTimestamp("effectivetime");
                     boolean authentication = rs.getBoolean("authentication");
                     boolean isAdminResult = rs.getBoolean("isAdmin");
 
@@ -215,7 +216,10 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
         try {
             con = DBUtil.getConnection();
             if (con != null) {
-                String sql = "INSERT INTO account (id_account, avatar, accountname, firstname, lastname, gender, address, phonenumber, yearofbirth, email, receive_email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                // isAdmin and authentication have no column default, so leaving
+                // them out wrote NULL. The login query filters on `isAdmin = ?`,
+                // and NULL never equals anything - new accounts could not sign in.
+                String sql = "INSERT INTO account (id_account, avatar, accountname, firstname, lastname, gender, address, phonenumber, yearofbirth, email, receive_email, password, authentication, isAdmin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 stm = con.prepareStatement(sql);
                 stm.setString(1, t.getIdAccount());
                 stm.setString(2, t.getAvatar());
@@ -229,6 +233,8 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
                 stm.setString(10, t.getEmail());
                 stm.setBoolean(11, t.isReceiveEmail());
                 stm.setString(12, t.getPassword());
+                stm.setBoolean(13, t.isAuthentication());
+                stm.setBoolean(14, t.isIsAdmin());
 
                 result = stm.executeUpdate();
 
@@ -332,7 +338,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
 
                 stm = con.prepareStatement(sql);
                 stm.setString(1, t.getVerificationCode());
-                stm.setDate(2, t.getEffectiveTime());
+                stm.setTimestamp(2, t.getEffectiveTime());
                 stm.setBoolean(3, t.isAuthentication());
                 stm.setString(4, t.getIdAccount());
 
@@ -464,6 +470,66 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
         return false;
     }
 
+    /**
+     * Forgot-password looks accounts up by email, so an address may only be
+     * registered once - otherwise the lookup would silently pick one of them.
+     */
+    public boolean kiemTraEmail(String email) throws SQLException, ClassNotFoundException {
+        Connection con = null;
+        ResultSet rs = null;
+        PreparedStatement stm = null;
+        try {
+            con = DBUtil.getConnection();
+            if (con != null) {
+                String sql = "SELECT 1 FROM account WHERE email=?";
+                stm = con.prepareStatement(sql);
+                stm.setString(1, email);
+                rs = stm.executeQuery();
+                return rs.next();
+            }
+        } finally {
+            if (rs != null) {
+                rs.close();
+            }
+            if (stm != null) {
+                stm.close();
+            }
+            if (con != null) {
+                con.close();
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Burns a verification code once it has been used or has run out of
+     * attempts, so it can never be replayed.
+     */
+    public int clearVerificationCode(String idAccount) throws SQLException, ClassNotFoundException {
+        int result = 0;
+        Connection con = null;
+        PreparedStatement stm = null;
+        try {
+            con = DBUtil.getConnection();
+            if (con != null) {
+                String sql = "UPDATE account SET verificationcode=NULL, effectivetime=NULL WHERE id_account=?";
+                stm = con.prepareStatement(sql);
+                stm.setString(1, idAccount);
+                result = stm.executeUpdate();
+            }
+        } finally {
+            if (stm != null) {
+                stm.close();
+            }
+            if (con != null) {
+                con.close();
+            }
+        }
+
+        return result;
+    }
+
     public User selectByUserId(String userId) throws SQLException, ClassNotFoundException {
         User result = null;
         Connection con = null;
@@ -492,7 +558,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
                     boolean receiveEmail = rs.getBoolean("receive_email");
                     String password = rs.getString("password");
                     String verificationCode = rs.getString("verificationcode");
-                    Date efffectiveTime = rs.getDate("effectivetime");
+                    Timestamp efffectiveTime = rs.getTimestamp("effectivetime");
                     boolean authentication = rs.getBoolean("authentication");
                     boolean isAdmin = rs.getBoolean("isAdmin");
                     result = new User(idAccount, avatar, accountName, firstname, lastname, gender, address, phoneNumber, yob, email, receiveEmail, password, verificationCode, efffectiveTime, authentication, isAdmin);
@@ -545,7 +611,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
                     boolean receiveEmail = rs.getBoolean("receive_email");
                     String password = rs.getString("password");
                     String verificationCode = rs.getString("verificationcode");
-                    Date efffectiveTime = rs.getDate("effectivetime");
+                    Timestamp efffectiveTime = rs.getTimestamp("effectivetime");
                     boolean authentication = rs.getBoolean("authentication");
                     boolean isAdmin = rs.getBoolean("isAdmin");
                     User result = new User(idAccount, avatar, accountName, firstname, lastname, gender, address, phoneNumber, yob, email, receiveEmail, password, verificationCode, efffectiveTime, authentication, isAdmin);
@@ -633,7 +699,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
                 boolean receiveEmail = rs.getBoolean("receive_email");
                 String password = rs.getString("password");
                 String verificationCode = rs.getString("verificationcode");
-                Date effectiveTime = rs.getDate("effectivetime");
+                Timestamp effectiveTime = rs.getTimestamp("effectivetime");
                 boolean authentication = rs.getBoolean("authentication");
                 boolean isAdmin = rs.getBoolean("isAdmin");
                 result = new User(idAccount, avatar, accountName, firstname, lastname, gender, address, phoneNumber, yob, email1, receiveEmail, password, verificationCode, effectiveTime, authentication, isAdmin);
@@ -665,7 +731,7 @@ public int countAllUsers() throws SQLException, ClassNotFoundException {
 
             stm = con.prepareStatement(sql);
             stm.setString(1, t.getVerificationCode());
-            stm.setDate(2, t.getEffectiveTime());
+            stm.setTimestamp(2, t.getEffectiveTime());
             stm.setString(3, t.getIdAccount());
 
             System.out.println(stm); // This will print the final prepared statement
