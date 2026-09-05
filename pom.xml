@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.fptu</groupId>
+    <artifactId>cenematic</artifactId>
+    <version>1.0.0</version>
+    <packaging>war</packaging>
+    <name>Cenematic</name>
+    <description>Online cinema ticket booking system (JSP + Servlet)</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>11</maven.compiler.release>
+        <tomcat.version>9.0.107</tomcat.version>
+        <!-- Override with -Dapp.port=8080 if the port is free on your machine. -->
+        <app.port>8081</app.port>
+
+        <!-- Database settings handed to the container as system properties.
+             Defaults match docker-compose.yml. -->
+        <db.host>localhost</db.host>
+        <db.port>1433</db.port>
+        <db.name>CENEMATIC</db.name>
+        <db.user>sa</db.user>
+        <db.password>Cenematic@2024</db.password>
+    </properties>
+
+    <dependencies>
+        <!-- Servlet / JSP container APIs (provided by Tomcat 9) -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>4.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>javax.servlet.jsp-api</artifactId>
+            <version>2.3.3</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- JSTL -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
+            <version>1.2</version>
+        </dependency>
+
+        <!-- SQL Server JDBC driver (replaces the bundled, unmaintained sqljdbc4.jar) -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>12.8.1.jre11</version>
+        </dependency>
+
+        <!-- SMTP mail -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+
+        <!-- Multipart upload helpers -->
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>Cenematic</finalName>
+        <!-- Keep the original NetBeans layout instead of moving 75 files. -->
+        <sourceDirectory>src/java</sourceDirectory>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.4.0</version>
+                <configuration>
+                    <warSourceDirectory>web</warSourceDirectory>
+                    <!-- Ignore the jars checked into web/WEB-INF/lib: Maven supplies these
+                         now, and the old copies (three conflicting JSTL jars, the
+                         unmaintained sqljdbc4 driver) break JSP tag resolution. -->
+                    <warSourceExcludes>WEB-INF/lib/**</warSourceExcludes>
+                </configuration>
+            </plugin>
+
+            <!-- `mvn cargo:run` downloads Tomcat 9 and serves the app at /Cenematic -->
+            <plugin>
+                <groupId>org.codehaus.cargo</groupId>
+                <artifactId>cargo-maven3-plugin</artifactId>
+                <version>1.10.15</version>
+                <configuration>
+                    <container>
+                        <containerId>tomcat9x</containerId>
+                        <artifactInstaller>
+                            <groupId>org.apache.tomcat</groupId>
+                            <artifactId>tomcat</artifactId>
+                            <version>${tomcat.version}</version>
+                        </artifactInstaller>
+                        <systemProperties>
+                            <DB_HOST>${db.host}</DB_HOST>
+                            <DB_PORT>${db.port}</DB_PORT>
+                            <DB_NAME>${db.name}</DB_NAME>
+                            <DB_USER>${db.user}</DB_USER>
+                            <DB_PASSWORD>${db.password}</DB_PASSWORD>
+                        </systemProperties>
+                    </container>
+                    <configuration>
+                        <properties>
+                            <cargo.servlet.port>${app.port}</cargo.servlet.port>
+                        </properties>
+                    </configuration>
+                    <deployables>
+                        <deployable>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <type>war</type>
+                            <properties>
+                                <context>Cenematic</context>
+                            </properties>
+                        </deployable>
+                    </deployables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

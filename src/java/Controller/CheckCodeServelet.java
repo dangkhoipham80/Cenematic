@@ -7,6 +7,7 @@ package Controller;
 
 import DAO.UserDAO;
 import DTO.User;
+import Utils.AppUrl;
 import Utils.Email;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -57,7 +58,7 @@ public class CheckCodeServelet extends HttpServlet {
                 boolean success = dao.changePassword(user);
                 
                 if (success) {
-                    Email.sendEmail(user.getEmail(), "Authenticate password at CINEMATIC.vn", getNoiDung(user));
+                    Email.sendEmail(user.getEmail(), "Authenticate password at CINEMATIC.vn", getNoiDung(request, user));
                 }
             } else {
                 request.setAttribute("errorMessage", "Verification code is incorrect/or does not exist");
@@ -76,8 +77,8 @@ public class CheckCodeServelet extends HttpServlet {
     }
 }
     
-    public static String getNoiDung(User user) {
-         String link = "http://localhost:8084/Cenematic1/UserController?btAction=authen&maKhachHang="
+    public static String getNoiDung(HttpServletRequest request, User user) {
+         String link = AppUrl.base(request) + "/UserController?btAction=authen&maKhachHang="
                 + user.getIdAccount() + "&maPassword=" + user.getPassword();
     String noiDung = "<p>Cinematic.vn xin ch&agrave;o bạn <strong>" + user.getAccountName() + "</strong>,</p>\r\n"
             + "<p>Vui l&ograve;ng x&aacute;c thực t&agrave;i khoản của bạn bằng c&aacute;ch nhập m&atilde; <strong>"

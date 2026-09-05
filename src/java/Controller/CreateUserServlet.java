@@ -7,6 +7,7 @@ package Controller;
 
 import DAO.UserDAO;
 import DTO.User;
+import Utils.AppUrl;
 import Utils.Email;
 import Utils.MaHoa;
 import Utils.SoNgauNhien;
@@ -114,7 +115,7 @@ public class CreateUserServlet extends HttpServlet {
 
                     if (khachHangDAO.updateVerifyInformation(user) > 0) {
                         // Gui email cho khach hang
-                        Email.sendEmail(user.getEmail(), "Xác thực tài khoản tại CINEMATIC.vn", getNoiDung(user));
+                        Email.sendEmail(user.getEmail(), "Xác thực tài khoản tại CINEMATIC.vn", getNoiDung(request, user));
                     }
                 }
                 url = MANAGEMENT_PAGE;
@@ -133,8 +134,8 @@ public class CreateUserServlet extends HttpServlet {
         }
     }
 
-    public static String getNoiDung(User kh) {
-        String link = "http://localhost:8084/Cenematic/AdminController?btAction=confirm&maKhachHang="
+    public static String getNoiDung(HttpServletRequest request, User kh) {
+        String link = AppUrl.base(request) + "/AdminController?btAction=confirm&maKhachHang="
                 + kh.getIdAccount() + "&maXacThuc=" + kh.getVerificationCode();
         String noiDung = "<p>Cinematic.vn xin ch&agrave;o bạn <strong>" + kh.getAccountName() + "</strong>,</p>\r\n"
                 + "<p>Vui l&ograve;ng x&aacute;c thực t&agrave;i khoản của bạn bằng c&aacute;ch nhập m&atilde; <strong>"
