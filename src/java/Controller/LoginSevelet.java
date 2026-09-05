@@ -4,7 +4,6 @@ import DAO.UserDAO;
 import DTO.User;
 import Utils.MaHoa;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -22,12 +21,18 @@ public class LoginSevelet extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
         String url = LOGIN_PAGE; // Default to login page
 
         try {
             String tenDangNhap = request.getParameter("UserName");
             String matKhau = request.getParameter("Password");
+
+            if (tenDangNhap == null || matKhau == null || tenDangNhap.trim().isEmpty() || matKhau.isEmpty()) {
+                request.getSession().setAttribute("flashError", "Enter your username and password.");
+                response.sendRedirect(request.getContextPath() + "/" + LOGIN_PAGE);
+                return;
+            }
+            tenDangNhap = tenDangNhap.trim();
 
             matKhau = MaHoa.toSHA1(matKhau); // Hash the password
 
@@ -44,23 +49,9 @@ public class LoginSevelet extends HttpServlet {
 
                 // Check if Remember Me checkbox is checked
                 if (request.getParameter("rememberMe") != null) {
-                    Cookie cUserName = new Cookie("UserName", tenDangNhap);
-                    Cookie cPassword = new Cookie("Password", matKhau);
-                    cUserName.setMaxAge(24 * 60 * 60); // 1 day
-                    cPassword.setMaxAge(24 * 60 * 60); // 1 day
-                    response.addCookie(cUserName);
-                    response.addCookie(cPassword);
+                    rememberMe(request, response, tenDangNhap, matKhau);
                 } else {
-                    // Clear existing cookies if Remember Me is not checked
-                    Cookie[] cookies = request.getCookies();
-                    if (cookies != null) {
-                        for (Cookie cookie : cookies) {
-                            if (cookie.getName().equals("UserName") || cookie.getName().equals("Password")) {
-                                cookie.setMaxAge(0);
-                                response.addCookie(cookie);
-                            }
-                        }
-                    }
+                    forgetMe(request, response);
                 }
 
                 url = ADMIN_PAGE; // Redirect to admin page after successful login
@@ -72,36 +63,60 @@ public class LoginSevelet extends HttpServlet {
 
                     // Check if Remember Me checkbox is checked
                     if (request.getParameter("rememberMe") != null) {
-                        Cookie cUserName = new Cookie("UserName", tenDangNhap);
-                        Cookie cPassword = new Cookie("Password", matKhau);
-                        cUserName.setMaxAge(24 * 60 * 60); // 1 day
-                        cPassword.setMaxAge(24 * 60 * 60); // 1 day
-                        response.addCookie(cUserName);
-                        response.addCookie(cPassword);
+                        rememberMe(request, response, tenDangNhap, matKhau);
                     } else {
-                        // Clear existing cookies if Remember Me is not checked
-                        Cookie[] cookies = request.getCookies();
-                        if (cookies != null) {
-                            for (Cookie cookie : cookies) {
-                                if (cookie.getName().equals("UserName") || cookie.getName().equals("Password")) {
-                                    cookie.setMaxAge(0);
-                                    response.addCookie(cookie);
-                                }
-                            }
-                        }
+                        forgetMe(request, response);
                     }
 
                     url = INDEX_PAGE; // Redirect to index page after successful login
                 } else {
-                    request.setAttribute("errorMessage",
-                            "Tên đăng nhập hoặc mật khẩu không đúng / hoặc Tài khoản chưa xác thực!");
+                    // A forward-scoped attribute would not survive the redirect
+                    // below, which is why the login page never showed an error.
+                    request.getSession().setAttribute("flashError",
+                            "Incorrect username or password, or the account has not been confirmed yet.");
                 }
             }
         } catch (SQLException | ClassNotFoundException ex) {
             ex.printStackTrace();
         } finally {
-            response.sendRedirect(url); // Redirect to the appropriate page
-            out.close();
+            response.sendRedirect(request.getContextPath() + "/" + url);
+        }
+    }
+
+    /**
+     * Remembers the sign-in for a day. HttpOnly because only the server reads
+     * these back (see header.jsp); it keeps the stored credential away from
+     * any script on the page.
+     */
+    private static void rememberMe(HttpServletRequest request, HttpServletResponse response,
+            String userName, String hashedPassword) {
+        Cookie cUserName = new Cookie("UserName", userName);
+        Cookie cPassword = new Cookie("Password", hashedPassword);
+        for (Cookie cookie : new Cookie[]{cUserName, cPassword}) {
+            cookie.setMaxAge(24 * 60 * 60); // 1 day
+            cookie.setHttpOnly(true);
+            cookie.setPath(request.getContextPath().isEmpty() ? "/" : request.getContextPath());
+            response.addCookie(cookie);
+        }
+    }
+
+    /**
+     * Drops the remembered sign-in. The expiring cookie has to carry the same
+     * path as the one that set it, or the browser keeps the original.
+     */
+    private static void forgetMe(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return;
+        }
+        String path = request.getContextPath().isEmpty() ? "/" : request.getContextPath();
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("UserName") || cookie.getName().equals("Password")) {
+                cookie.setValue("");
+                cookie.setMaxAge(0);
+                cookie.setPath(path);
+                response.addCookie(cookie);
+            }
         }
     }
 

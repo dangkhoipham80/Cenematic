@@ -1,131 +1,115 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package Controller;
 
 import DAO.UserDAO;
 import DTO.User;
-import Utils.AppUrl;
-import Utils.Email;
+import Utils.Validate;
+import Utils.VerificationCode;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
-import java.util.Random;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
+ * Step 2 of the password reset: check the emailed code.
  *
- * @author ACER
+ * The account is taken from the session, not from a hidden form field - the
+ * old form posted the account id alongside the code, so anyone could aim a
+ * guessed code at any account. A correct code no longer mails out a temporary
+ * password; it authorises the visitor to choose one on the next screen.
  */
 public class CheckCodeServelet extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    private final String AUTHENTICATE_PAGE = "authenticate.jsp";
-   
-      
+    private final String VERIFY_PAGE = "authenticate.jsp";
+    private final String FORGOT_PAGE = "forgotpassword.jsp";
+    private final String RESET_PAGE = "resetpassword.jsp";
 
-   protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-    response.setContentType("text/html;charset=UTF-8");
-    PrintWriter out = response.getWriter();
-    String url = "";
-    try {
-        String codeVerification = request.getParameter("Code");
-        String userId = request.getParameter("userID");
-        UserDAO dao = new UserDAO();
-        User user = dao.selectById(new User(userId));
-        
-        if (user != null) {
-            if (user.getVerificationCode().equals(codeVerification)) {
-                Random rd = new Random();
-                String password = System.currentTimeMillis() + rd.nextInt(1000) + "";
-               
-                user.setPassword(password);
-                boolean success = dao.changePassword(user);
-                
-                if (success) {
-                    Email.sendEmail(user.getEmail(), "Authenticate password at CINEMATIC.vn", getNoiDung(request, user));
-                }
-            } else {
-                request.setAttribute("errorMessage", "Verification code is incorrect/or does not exist");
-                url = AUTHENTICATE_PAGE;
-            }
-        } else {
-            request.setAttribute("errorMessage", "Verification code is incorrect/or does not exist");
-            url = AUTHENTICATE_PAGE;
-        }
-    } catch (SQLException | ClassNotFoundException ex) {
-        ex.printStackTrace();
-    } finally {
-        RequestDispatcher rd = request.getRequestDispatcher(url);
-        rd.forward(request, response);
-        out.close();
-    }
-}
-    
-    public static String getNoiDung(HttpServletRequest request, User user) {
-         String link = AppUrl.base(request) + "/UserController?btAction=authen&maKhachHang="
-                + user.getIdAccount() + "&maPassword=" + user.getPassword();
-    String noiDung = "<p>Cinematic.vn xin ch&agrave;o bạn <strong>" + user.getAccountName() + "</strong>,</p>\r\n"
-            + "<p>Vui l&ograve;ng x&aacute;c thực t&agrave;i khoản của bạn bằng c&aacute;ch nhập m&atilde; <strong>"
-            + user.getPassword() + "</strong>, hoặc click trực tiếp v&agrave;o đường link sau đ&acirc;y:</p>\r\n"
-            + "<p><a href=\"" + link + "\">" + link + "</a></p>\r\n"
-            + "<p>Đ&acirc;y l&agrave; email tự động, vui l&ograve;ng kh&ocirc;ng phản hồi email n&agrave;y.</p>\r\n"
-            + "<p>Tr&acirc;n trọng cảm ơn.</p>";
-    return noiDung;
-}
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+        response.sendRedirect(request.getContextPath() + "/forgotpassword.jsp");
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        HttpSession session = request.getSession();
+
+        String email = Validate.clean((String) session.getAttribute(ForgotPasswordServelet.SESSION_EMAIL));
+        if (email.isEmpty()) {
+            // Deep link or expired session - start over rather than crash.
+            request.setAttribute("errorMessage",
+                    "Your reset request expired. Please enter your email address again.");
+            forward(request, response, FORGOT_PAGE);
+            return;
+        }
+
+        String code = Validate.clean(request.getParameter("Code"));
+        int attempts = attemptsSoFar(session);
+
+        if (attempts >= VerificationCode.MAX_ATTEMPTS) {
+            request.setAttribute("errorMessage",
+                    "Too many incorrect codes. Request a new one to continue.");
+            forward(request, response, VERIFY_PAGE);
+            return;
+        }
+
+        try {
+            UserDAO dao = new UserDAO();
+            User user = dao.selectByUserEmail(email);
+
+            if (VerificationCode.matches(user, code)) {
+                // Single use: burn the code before handing out the reset ticket.
+                dao.clearVerificationCode(user.getIdAccount());
+                session.setAttribute(ForgotPasswordServelet.SESSION_VERIFIED_ID, user.getIdAccount());
+                session.setAttribute(ForgotPasswordServelet.SESSION_ATTEMPTS, 0);
+                forward(request, response, RESET_PAGE);
+                return;
+            }
+
+            attempts++;
+            session.setAttribute(ForgotPasswordServelet.SESSION_ATTEMPTS, attempts);
+
+            if (user != null && VerificationCode.isExpired(user)) {
+                request.setAttribute("errorMessage",
+                        "That code has expired. Request a new one below.");
+            } else {
+                int left = VerificationCode.MAX_ATTEMPTS - attempts;
+                request.setAttribute("errorMessage", left > 0
+                        ? "That code is not correct. " + left + " attempt" + (left == 1 ? "" : "s") + " left."
+                        : "Too many incorrect codes. Request a new one to continue.");
+            }
+        } catch (SQLException | ClassNotFoundException ex) {
+            log("Could not verify a reset code", ex);
+            request.setAttribute("errorMessage",
+                    "Something went wrong on our side. Please try again in a moment.");
+        }
+
+        forward(request, response, VERIFY_PAGE);
+    }
+
+    private static int attemptsSoFar(HttpSession session) {
+        Object value = session.getAttribute(ForgotPasswordServelet.SESSION_ATTEMPTS);
+        return value instanceof Integer ? (Integer) value : 0;
+    }
+
+    private void forward(HttpServletRequest request, HttpServletResponse response, String page)
+            throws ServletException, IOException {
+        RequestDispatcher rd = request.getRequestDispatcher(page);
+        rd.forward(request, response);
+    }
+
     @Override
     public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
+        return "Verifies the one-time password reset code";
+    }
 }

@@ -1,0 +1,726 @@
+/* ---------------------------------------------------------------------------
+   Cinematic — shared styles for the account pages
+   (login, register, forgot password, verification code, reset password).
+
+   Self-contained: these pages do not load Bootstrap, so everything the
+   markup needs lives here.
+   ------------------------------------------------------------------------ */
+
+:root {
+    --bg: #0a0a0c;
+    --surface: #141419;
+    --surface-2: #1b1b22;
+    --surface-3: #23232c;
+    --line: #2c2c36;
+    --line-strong: #3a3a46;
+
+    --text: #f3f3f5;
+    --muted: #9b9baa;
+    --faint: #6f6f7d;
+
+    --accent: #f5b301;
+    --accent-soft: rgba(245, 179, 1, 0.14);
+    --accent-ink: #1a1300;
+
+    --danger: #ff6b5e;
+    --danger-soft: rgba(255, 107, 94, 0.12);
+    --ok: #43d39e;
+    --ok-soft: rgba(67, 211, 158, 0.12);
+
+    --radius: 14px;
+    --radius-sm: 10px;
+    --ring: 0 0 0 3px rgba(245, 179, 1, 0.28);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body.auth {
+    margin: 0;
+    min-height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg);
+    /* Two warm spotlights, like light spill from a projection booth. */
+    background-image:
+        radial-gradient(60rem 40rem at 12% -10%, rgba(245, 179, 1, 0.10), transparent 60%),
+        radial-gradient(50rem 34rem at 100% 105%, rgba(255, 87, 34, 0.09), transparent 62%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- Card -------------------------------------------------------------- */
+
+.auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 36px 34px 30px;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.04) inset,
+        0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.auth-card--wide {
+    max-width: 780px;
+}
+
+/* --- Brand ------------------------------------------------------------- */
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 26px;
+    text-decoration: none;
+}
+
+.auth-brand img {
+    height: 46px;
+    width: auto;
+}
+
+.auth-brand span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+/* --- Headings ---------------------------------------------------------- */
+
+.auth-head {
+    margin-bottom: 24px;
+}
+
+.auth-head h1 {
+    margin: 0 0 6px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+.auth-head p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.94rem;
+}
+
+.auth-head p strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* --- Step indicator (reset-password flow) ------------------------------ */
+
+.steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    list-style: none;
+    padding: 0;
+}
+
+.steps li {
+    flex: 1;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding-top: 9px;
+    border-top: 2px solid var(--line);
+}
+
+.steps li.is-done {
+    color: var(--muted);
+    border-top-color: var(--line-strong);
+}
+
+.steps li.is-current {
+    color: var(--accent);
+    border-top-color: var(--accent);
+}
+
+/* --- Alerts ------------------------------------------------------------ */
+
+.alert {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+}
+
+.alert::before {
+    flex: none;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.alert--error {
+    background: var(--danger-soft);
+    border-color: rgba(255, 107, 94, 0.35);
+    color: #ffb5ae;
+}
+
+.alert--error::before {
+    content: "!";
+}
+
+.alert--ok {
+    background: var(--ok-soft);
+    border-color: rgba(67, 211, 158, 0.35);
+    color: #8ee9c6;
+}
+
+.alert--ok::before {
+    content: "\2713";
+}
+
+.alert--info {
+    background: var(--accent-soft);
+    border-color: rgba(245, 179, 1, 0.32);
+    color: #ffd772;
+}
+
+.alert--info::before {
+    content: "i";
+}
+
+.alert p {
+    margin: 0;
+}
+
+.alert p + p {
+    margin-top: 4px;
+}
+
+/* --- Form layout ------------------------------------------------------- */
+
+.form-section + .form-section {
+    margin-top: 26px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+}
+
+.form-section h2 {
+    margin: 0 0 16px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+}
+
+@media (max-width: 620px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Fields (floating labels, no JS) ----------------------------------- */
+
+.field {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.field input,
+.field select {
+    width: 100%;
+    height: 58px;
+    padding: 24px 14px 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.97rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.field input::placeholder {
+    color: transparent;
+}
+
+.field input:hover,
+.field select:hover {
+    border-color: var(--line-strong);
+}
+
+.field input:focus,
+.field select:focus {
+    outline: none;
+    background: var(--surface-3);
+    border-color: var(--accent);
+    box-shadow: var(--ring);
+}
+
+/* Chrome autofill would otherwise repaint the input pale blue. */
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text);
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-3) inset;
+    caret-color: var(--text);
+}
+
+.field label {
+    position: absolute;
+    top: 18px;
+    left: 15px;
+    color: var(--muted);
+    font-size: 0.97rem;
+    pointer-events: none;
+    transform-origin: left top;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+/* Raise the label once the field has focus or content. `date` inputs always
+   render a placeholder-ish value, so they keep the label raised. */
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label,
+.field input[type="date"] + label,
+.field select + label {
+    transform: translateY(-11px) scale(0.76);
+    color: var(--muted);
+}
+
+.field input:focus + label {
+    color: var(--accent);
+}
+
+.field label .req {
+    color: var(--accent);
+    margin-left: 2px;
+}
+
+.field .hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.79rem;
+    color: var(--faint);
+}
+
+.field .error {
+    display: none;
+    margin-top: 6px;
+    font-size: 0.79rem;
+    color: var(--danger);
+}
+
+.field.is-invalid input {
+    border-color: var(--danger);
+}
+
+.field.is-invalid input:focus {
+    box-shadow: 0 0 0 3px rgba(255, 107, 94, 0.24);
+}
+
+.field.is-invalid .error {
+    display: block;
+}
+
+.field.is-invalid .hint {
+    display: none;
+}
+
+/* Reveal-password button */
+.field--password input {
+    padding-right: 56px;
+}
+
+.pw-toggle {
+    position: absolute;
+    top: 11px;
+    right: 8px;
+    height: 36px;
+    padding: 0 10px;
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.pw-toggle:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.pw-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
+/* --- Password strength meter ------------------------------------------- */
+
+/* Sits directly under the password field it measures, so pull it back up
+   over that field's bottom margin. */
+.pw-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -12px 0 18px;
+}
+
+.pw-meter .bars {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+}
+
+.pw-meter .bars i {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line);
+    transition: background-color 0.2s ease;
+}
+
+.pw-meter .label {
+    min-width: 62px;
+    text-align: right;
+    font-size: 0.76rem;
+    color: var(--faint);
+}
+
+.pw-meter[data-score="1"] .bars i:nth-child(-n + 1),
+.pw-meter[data-score="2"] .bars i:nth-child(-n + 2) {
+    background: var(--danger);
+}
+
+.pw-meter[data-score="3"] .bars i:nth-child(-n + 3) {
+    background: var(--accent);
+}
+
+.pw-meter[data-score="4"] .bars i {
+    background: var(--ok);
+}
+
+.pw-meter[data-score="1"] .label,
+.pw-meter[data-score="2"] .label {
+    color: var(--danger);
+}
+
+.pw-meter[data-score="3"] .label {
+    color: var(--accent);
+}
+
+.pw-meter[data-score="4"] .label {
+    color: var(--ok);
+}
+
+/* --- Checkbox ---------------------------------------------------------- */
+
+.check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+/* Custom box: `accent-color` alone only tints the tick, leaving a bright
+   white square sitting on the dark card. */
+.check input {
+    flex: none;
+    width: 19px;
+    height: 19px;
+    margin: 2px 0 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.check:hover input {
+    border-color: var(--accent);
+}
+
+.check input:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Tick drawn as a rotated corner so no icon font is needed. */
+.check input:checked::after {
+    content: "";
+    display: block;
+    width: 5px;
+    height: 9px;
+    margin: 1px auto 0;
+    border: solid var(--accent-ink);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.check input:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
+.check a {
+    color: var(--accent);
+}
+
+/* --- Buttons ----------------------------------------------------------- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 50px;
+    padding: 0 20px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.98rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.06s ease;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
+.btn--primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+.btn--primary:hover {
+    background: #ffc93c;
+}
+
+.btn--primary:disabled {
+    background: var(--surface-3);
+    color: var(--faint);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn--ghost {
+    background: transparent;
+    border-color: var(--line-strong);
+    color: var(--text);
+}
+
+.btn--ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn + .btn,
+form + form .btn {
+    margin-top: 10px;
+}
+
+/* --- Footer links ------------------------------------------------------ */
+
+.auth-foot {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.auth-foot a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-foot a:hover {
+    text-decoration: underline;
+}
+
+.auth-foot .copyright {
+    display: block;
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--faint);
+}
+
+.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.row-between .check {
+    margin-bottom: 0;
+}
+
+.link-quiet {
+    color: var(--muted);
+    font-size: 0.88rem;
+    text-decoration: none;
+}
+
+.link-quiet:hover {
+    color: var(--accent);
+}
+
+/* --- One-time code input ----------------------------------------------- */
+
+.otp {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+/* The class selector would otherwise beat the user agent's [hidden] rule and
+   show the boxes to visitors without JavaScript, next to the plain input. */
+.otp[hidden] {
+    display: none;
+}
+
+.otp input {
+    width: 100%;
+    height: 62px;
+    padding: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font: inherit;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.otp input:focus {
+    outline: none;
+    background: var(--surface-3);
+    border-color: var(--accent);
+    box-shadow: var(--ring);
+}
+
+.otp input:not(:placeholder-shown) {
+    border-color: var(--line-strong);
+}
+
+.otp-hint {
+    margin: 0 0 20px;
+    font-size: 0.82rem;
+    color: var(--faint);
+}
+
+/* --- Standalone status page (verification result / check your inbox) ---- */
+
+.status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.status-icon--ok {
+    background: var(--ok-soft);
+    color: var(--ok);
+}
+
+.status-icon--error {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.status-icon--mail {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* --- Accessibility ----------------------------------------------------- */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 480px) {
+    body.auth {
+        padding: 20px 14px;
+    }
+
+    .auth-card {
+        padding: 28px 20px 24px;
+        border-radius: 16px;
+    }
+}

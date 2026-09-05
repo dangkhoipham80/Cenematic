@@ -1,7 +1,6 @@
 package Controller;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -21,14 +20,14 @@ public class UserController extends HttpServlet {
     private final String AUTHENTICATE_SEVELET = "AuthenticateSevelet";
     private final String MOVIECATEGORY_SEVELET = "MovieCategorySevelet";
     private final String SEARCH_SEVELET = "SearchSevelet";
-    private final String MAHOAPASS_SEVELET = "AuthenPassSevelet";
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        String url = "";
-        try {
+        // An unrecognised action used to leave this empty and forward to "",
+        // which surfaces as a 500 rather than a page.
+        String url = "index.jsp";
+        {
             String btAction = request.getParameter("btAction") + "";
             if (btAction.equals("login")) {
                 url = LOGIN_SERVELET;
@@ -46,17 +45,11 @@ public class UserController extends HttpServlet {
                 url = MOVIECATEGORY_SEVELET;
             } else if (btAction.equals("search")) {
                 url = SEARCH_SEVELET;
-            } else if(btAction.equals("authen")) {
-                url = MAHOAPASS_SEVELET;
             }
-            System.out.println("Forwarding to: " + url);
-
-        } finally {
-            System.out.println("Before forwarding request to: " + url);
-            RequestDispatcher rd = request.getRequestDispatcher(url);
-            rd.forward(request, response);
-            System.out.println("After forwarding request to: " + url); // This line will not be executed
         }
+
+        RequestDispatcher rd = request.getRequestDispatcher(url);
+        rd.forward(request, response);
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

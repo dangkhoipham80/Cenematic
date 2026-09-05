@@ -6,6 +6,7 @@
 package DTO;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 
 /**
  *
@@ -26,7 +27,7 @@ public class User {
     private boolean receiveEmail;
     private String password;
     private String verificationCode;
-    private Date effectiveTime;
+    private Timestamp effectiveTime;
     private boolean authentication;
     private boolean isAdmin;
     public User() {
@@ -46,7 +47,7 @@ public class User {
         this.password = password;
     }
 
-    public User(String idAccount, String accountName, String firstname, String lastname, String address, String phoneNumber, Date yob, String email, boolean receiveEmail, String password, String verificationCode, Date effectiveTime, boolean authentication) {
+    public User(String idAccount, String accountName, String firstname, String lastname, String address, String phoneNumber, Date yob, String email, boolean receiveEmail, String password, String verificationCode, Timestamp effectiveTime, boolean authentication) {
         this.idAccount = idAccount;
         this.accountName = accountName;
         this.firstname = firstname;
@@ -62,7 +63,7 @@ public class User {
         this.authentication = authentication;
     }
 
-    public User(String idAccount, String avatar, String accountName, String firstname, String lastname, String gender, String address, String phoneNumber, Date yob, String email, boolean receiveEmail, String password, String verificationCode, Date effectiveTime, boolean authentication, boolean isAdmin) {
+    public User(String idAccount, String avatar, String accountName, String firstname, String lastname, String gender, String address, String phoneNumber, Date yob, String email, boolean receiveEmail, String password, String verificationCode, Timestamp effectiveTime, boolean authentication, boolean isAdmin) {
         this.idAccount = idAccount;
         this.avatar = avatar;
         this.accountName = accountName;
@@ -171,11 +172,11 @@ public class User {
         this.verificationCode = verificationCode;
     }
 
-    public Date getEffectiveTime() {
+    public Timestamp getEffectiveTime() {
         return effectiveTime;
     }
 
-    public void setEffectiveTime(Date effectiveTime) {
+    public void setEffectiveTime(Timestamp effectiveTime) {
         this.effectiveTime = effectiveTime;
     }
 

@@ -185,8 +185,8 @@
         <servlet-class>Controller.ForgotPasswordServelet</servlet-class>
     </servlet>
     <servlet>
-        <servlet-name>AuthenPassSevelet</servlet-name>
-        <servlet-class>Controller.AuthenPassSevelet</servlet-class>
+        <servlet-name>ResetPasswordServlet</servlet-name>
+        <servlet-class>Controller.ResetPasswordServlet</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>UserController</servlet-name>
@@ -373,8 +373,8 @@
         <url-pattern>/ForgotPasswordServelet</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
-        <servlet-name>AuthenPassSevelet</servlet-name>
-        <url-pattern>/AuthenPassSevelet</url-pattern>
+        <servlet-name>ResetPasswordServlet</servlet-name>
+        <url-pattern>/ResetPasswordServlet</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

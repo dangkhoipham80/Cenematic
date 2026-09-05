@@ -1,14 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package Controller;
 
-import DTO.User;
 import DAO.UserDAO;
+import DTO.User;
+import Utils.Validate;
+import Utils.VerificationCode;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -17,103 +13,81 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
+ * Handles the confirmation link mailed after registration.
  *
- * @author admin
+ * The code is now checked for expiry and cleared once used; previously it was
+ * compared without a null check (any account that had never been issued a code
+ * threw a NullPointerException) and stayed valid indefinitely.
  */
 public class AuthenticateSevelet extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     private final String NOTIFY_PAGE = "notify.jsp";
 
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        String url = "";
-        try {
-            String maKhachHang = request.getParameter("maKhachHang");
-            String maXacThuc = request.getParameter("maXacThuc");
-
-            UserDAO khachHangDAO = new UserDAO();
-
-            User kh = new User();
-            kh.setIdAccount(maKhachHang);
-            User khachHang = khachHangDAO.selectById(kh);
-
-            String msg = "";
-            if (khachHang != null) {
-                // Kiem tra ma xac thuc co giong nhau hay khong? // Kiem tra xem ma xac thuc con
-                // hieu luc hay khong?
-                if (khachHang.getVerificationCode().equals(maXacThuc)) {
-                    // Thanh Cong
-                    khachHang.setAuthentication(true);
-                    khachHangDAO.updateVerifyInformation(khachHang);
-                    msg = "Xác thực thành công!";
-                } else {
-                    // That Bai
-                    msg = "Xác thực không thành công!";
-                }
-            } else {
-                msg = "Tài khoản không tồn tại!";
-            }
-            url = NOTIFY_PAGE;
-            request.setAttribute("baoLoi", msg);
-        } catch (SQLException | ClassNotFoundException ex) {
-            ex.printStackTrace();
-
-        } finally {
-
-            RequestDispatcher rd = request.getRequestDispatcher(url);
-            rd.forward(request, response);
-            out.close();
-        }
-    }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+
+        String maKhachHang = Validate.clean(request.getParameter("maKhachHang"));
+        String maXacThuc = Validate.clean(request.getParameter("maXacThuc"));
+
+        boolean ok = false;
+        String title;
+        String message;
+
+        try {
+            UserDAO dao = new UserDAO();
+            User user = dao.selectById(new User(maKhachHang));
+
+            if (user == null) {
+                title = "Account not found";
+                message = "We could not find the account this link belongs to.";
+            } else if (user.isAuthentication()) {
+                ok = true;
+                title = "Already confirmed";
+                message = "This account is confirmed - you can sign in whenever you like.";
+            } else if (VerificationCode.matches(user, maXacThuc)) {
+                user.setAuthentication(true);
+                user.setVerificationCode(null);
+                user.setEffectiveTime(null);
+                dao.updateVerifyInformation(user);
+                ok = true;
+                title = "You're all set";
+                message = "Your account is confirmed. Sign in to start booking tickets.";
+            } else if (VerificationCode.isExpired(user)) {
+                title = "This link has expired";
+                message = "Confirmation links are valid for 24 hours. Register again to get a fresh one.";
+            } else {
+                title = "Confirmation failed";
+                message = "This confirmation link is not valid.";
+            }
+        } catch (SQLException | ClassNotFoundException ex) {
+            log("Could not confirm an account", ex);
+            title = "Something went wrong";
+            message = "Please try the link again in a moment.";
+        }
+
+        request.setAttribute("statusOk", ok);
+        request.setAttribute("statusTitle", title);
+        request.setAttribute("statusMessage", message);
+
+        RequestDispatcher rd = request.getRequestDispatcher(NOTIFY_PAGE);
+        rd.forward(request, response);
+    }
+
     @Override
     public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
+        return "Confirms a newly registered account from the emailed link";
+    }
 }

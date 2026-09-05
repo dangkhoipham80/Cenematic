@@ -1,49 +1,78 @@
+<%@page import="Utils.Validate"%>
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%
+    String ctx = request.getContextPath();
+
+    // Flash messages are set on the session because the login servlet
+    // redirects; a request attribute would not survive that.
+    String flashError = (String) session.getAttribute("flashError");
+    session.removeAttribute("flashError");
+    String flashMessage = (String) session.getAttribute("flashMessage");
+    session.removeAttribute("flashMessage");
+%>
 <!DOCTYPE html>
-<html>
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Log in</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.min.js" integrity="sha384-7VPbUDkoPSGFnVtYi0QogXtr74QeVeeIs99Qfg5YCF+TidwNdjvaKZX19NZ/e6oz" crossorigin="anonymous"></script>
-    <link href="<%=request.getContextPath()%>/css/login.css" rel="stylesheet">
-</head>
-<body>
-    <main class="form-signin">
-        <form class="text-center" action="UserController" method="POST">
-            <input type="hidden" name="btAction" value="login"/>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Sign in &middot; Cinematic</title>
+        <link rel="stylesheet" href="<%=ctx%>/css/auth.css">
+    </head>
+    <body class="auth">
+        <main class="auth-card">
+            <a class="auth-brand" href="<%=ctx%>/index.jsp">
+                <img src="<%=ctx%>/img/bintang%20cinema.png" alt="">
+                <span>Cinematic</span>
+            </a>
 
-            <img class="mb-4" src="<%=request.getContextPath()%>/img/logo/logo.png" alt="" width="72">
-            <h1 class="h3 mb-3 fw-normal">LOGIN</h1>
-
-            <%
-                String errorMessage = (String) request.getAttribute("errorMessage");
-                if (errorMessage == null) {
-                    errorMessage = "";
-                }
-            %>
-            <div class="text-center"><span class="red"><%=errorMessage%></span></div>
-            <div class="form-floating">
-                <input type="text" class="form-control" id="UserName" placeholder="UserName" name="UserName">
-                <label for="UserName">UserName</label>
-            </div>
-            <div class="form-floating">
-                <input type="password" class="form-control" id="Password" placeholder="Password" name="Password">
-                <label for="Password">Password</label>
+            <div class="auth-head">
+                <h1>Welcome back</h1>
+                <p>Sign in to book seats and see your ticket history.</p>
             </div>
 
-            <div class="checkbox mb-3">
-                <label><input type="checkbox" name="rememberMe" value="true"> Remember this account</label>
-            </div>
+            <% if (flashMessage != null) { %>
+            <div class="alert alert--ok" role="status"><p><%=Validate.escapeHtml(flashMessage)%></p></div>
+            <% } %>
+            <% if (flashError != null) { %>
+            <div class="alert alert--error" role="alert"><p><%=Validate.escapeHtml(flashError)%></p></div>
+            <% } %>
 
-            <div class="checkbox mb-3">
-                <a href="forgotpassword.jsp" class="text-body forgot-password-link">Forgot password?</a>
-            </div>
+            <form action="<%=ctx%>/UserController" method="POST" data-validated data-busy-text="Signing in...">
+                <input type="hidden" name="btAction" value="login">
 
-            <button class="w-100 btn btn-lg btn-primary" type="submit">Login</button>
-            <a href="register.jsp" class="d-block mt-3">Register a new account</a>
-            <p class="mt-5 mb-3 text-muted">&copy; 2024-2025</p>
-        </form>
-    </main>
-</body>
+                <div class="field">
+                    <input type="text" id="UserName" name="UserName" placeholder="Username"
+                           autocomplete="username" autofocus required data-validate="required">
+                    <label for="UserName">Username</label>
+                    <span class="error"></span>
+                </div>
+
+                <div class="field field--password">
+                    <input type="password" id="Password" name="Password" placeholder="Password"
+                           autocomplete="current-password" required data-validate="required">
+                    <label for="Password">Password</label>
+                    <button type="button" class="pw-toggle" data-pw-toggle="Password"
+                            aria-label="Show password">Show</button>
+                    <span class="error"></span>
+                </div>
+
+                <div class="row-between">
+                    <label class="check">
+                        <input type="checkbox" name="rememberMe" value="true">
+                        <span>Remember me</span>
+                    </label>
+                    <a class="link-quiet" href="<%=ctx%>/forgotpassword.jsp">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn btn--primary">Sign in</button>
+            </form>
+
+            <div class="auth-foot">
+                New here? <a href="<%=ctx%>/register.jsp">Create an account</a>
+                <span class="copyright">&copy; 2024-2025 Cinematic</span>
+            </div>
+        </main>
+
+        <script src="<%=ctx%>/js/auth.js"></script>
+    </body>
 </html>

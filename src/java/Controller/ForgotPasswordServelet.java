@@ -1,16 +1,12 @@
-
 package Controller;
-
 
 import DAO.UserDAO;
 import DTO.User;
 import Utils.Email;
-import Utils.SoNgauNhien;
+import Utils.Validate;
+import Utils.VerificationCode;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.sql.Date;
 import java.sql.SQLException;
-import java.util.Calendar;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -19,110 +15,114 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
+ * Step 1 of the password reset: take an email address and, if it belongs to an
+ * account, mail a one-time code.
  *
- * @author admin
+ * The response is deliberately identical whether or not the address is
+ * registered. Reporting "no such account" turned this page into an oracle for
+ * checking which of a list of addresses had signed up.
  */
 public class ForgotPasswordServelet extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-  private final String AUTHENTICATE_PAGE = "authenticate.jsp";
+    /** Session keys shared with {@link CheckCodeServelet} and {@link ResetPasswordServlet}. */
+    static final String SESSION_EMAIL = "resetEmail";
+    static final String SESSION_ATTEMPTS = "resetAttempts";
+    static final String SESSION_SENT_AT = "resetSentAt";
+    static final String SESSION_VERIFIED_ID = "resetVerifiedUserId";
+
+    /** Rate limit for "resend the code", in milliseconds. */
+    private static final long RESEND_INTERVAL_MS = 60_000L;
+
+    private final String VERIFY_PAGE = "authenticate.jsp";
     private final String FORGOT_PAGE = "forgotpassword.jsp";
 
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
-        String url = "";
-        try {
-            String email = request.getParameter("Email");
-            UserDAO dao = new UserDAO();
-            User user = dao.selectByUserEmail(email);
-            HttpSession session = request.getSession();
-            if (user != null) {
-                String soNgauNhien = SoNgauNhien.getSoNgauNhien();
-
-                // Set expiration time for the verification code
-                Date todaysDate = new Date(new java.util.Date().getTime());
-                Calendar c = Calendar.getInstance();
-                c.setTime(todaysDate);
-                c.add(Calendar.DATE, 1);
-                Date thoGianHieuLucXacThuc = new Date(c.getTimeInMillis());
-
-                user.setVerificationCode(soNgauNhien);
-                user.setEffectiveTime(thoGianHieuLucXacThuc);
-                if (dao.updateVerifyPassword(user) > 0) {
-                    Email.sendEmail(user.getEmail(), "Authenticate password at CINEMATIC.vn", getNoiDung(user));
-                }
-                session.setAttribute("user", user);
-
-                url = AUTHENTICATE_PAGE;
-            } else {
-                request.setAttribute("errorMessage", "Account is incorrect/or does not exist");
-                url = FORGOT_PAGE;
-            }
-        } catch (SQLException | ClassNotFoundException ex) {
-            ex.printStackTrace();
-        } finally {
-            RequestDispatcher rd = request.getRequestDispatcher(url);
-rd.forward(request, response);
-            out.close();
-        }
-    }
-
-    public static String getNoiDung(User user) {
-        String noiDung = "<p>Cinematic.vn xin ch&agrave;o bạn <strong>" + user.getAccountName() + "</strong>,</p>\r\n"
-                + "<p>Vui l&ograve;ng x&aacute;c thực t&agrave;i khoản của bạn bằng c&aacute;ch nhập m&atilde; <strong>"
-                + user.getVerificationCode() + "</strong>, hoặc click trực tiếp v&agrave;o đường link sau đ&acirc;y:</p>\r\n"
-                + "<p>Đ&acirc;y l&agrave; email tự động, vui l&ograve;ng kh&ocirc;ng phản hồi email n&agrave;y.</p>\r\n"
-                + "<p>Tr&acirc;n trọng cảm ơn.</p>";
-        return noiDung;
-    }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+        response.sendRedirect(request.getContextPath() + "/forgotpassword.jsp");
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        HttpSession session = request.getSession();
+
+        // "Resend" comes back from the verify page, which knows the address already.
+        boolean resend = "1".equals(request.getParameter("resend"));
+        String email = resend
+                ? Validate.clean((String) session.getAttribute(SESSION_EMAIL))
+                : Validate.clean(request.getParameter("Email"));
+
+        String invalid = Validate.email(email);
+        if (invalid != null) {
+            request.setAttribute("errorMessage", invalid);
+            request.setAttribute("email", email);
+            forward(request, response, FORGOT_PAGE);
+            return;
+        }
+
+        Long lastSent = (Long) session.getAttribute(SESSION_SENT_AT);
+        boolean throttled = resend && lastSent != null
+                && System.currentTimeMillis() - lastSent < RESEND_INTERVAL_MS;
+
+        if (!throttled) {
+            try {
+                UserDAO dao = new UserDAO();
+                User user = dao.selectByUserEmail(email);
+                if (user != null) {
+                    user.setVerificationCode(VerificationCode.issue());
+                    user.setEffectiveTime(VerificationCode.expiresIn(VerificationCode.RESET_MINUTES));
+                    if (dao.updateVerifyPassword(user) > 0) {
+                        Email.sendEmail(user.getEmail(),
+                                "Đặt lại mật khẩu tại CINEMATIC.vn", getNoiDung(user));
+                    }
+                }
+            } catch (SQLException | ClassNotFoundException ex) {
+                // Still fall through to the code page: telling the visitor that
+                // the lookup failed would give away that the address exists.
+                log("Could not issue a reset code", ex);
+            }
+            session.setAttribute(SESSION_SENT_AT, System.currentTimeMillis());
+        }
+
+        // A fresh code invalidates any progress made against the previous one.
+        session.setAttribute(SESSION_EMAIL, email);
+        session.setAttribute(SESSION_ATTEMPTS, 0);
+        session.removeAttribute(SESSION_VERIFIED_ID);
+
+        // The page heading already names the address and the expiry, so this
+        // only adds what it does not say.
+        request.setAttribute("infoMessage", throttled
+                ? "A code was just sent. Please wait a minute before requesting another one."
+                : "Check your inbox, and your spam folder if it isn't there.");
+        forward(request, response, VERIFY_PAGE);
+    }
+
+    private void forward(HttpServletRequest request, HttpServletResponse response, String page)
+            throws ServletException, IOException {
+        RequestDispatcher rd = request.getRequestDispatcher(page);
+        rd.forward(request, response);
+    }
+
+    public static String getNoiDung(User user) {
+        return "<p>Cinematic.vn xin ch&agrave;o bạn <strong>" + Validate.escapeHtml(user.getAccountName()) + "</strong>,</p>\r\n"
+                + "<p>M&atilde; đặt lại mật khẩu của bạn l&agrave; <strong style=\"font-size:20px;letter-spacing:3px\">"
+                + user.getVerificationCode() + "</strong></p>\r\n"
+                + "<p>M&atilde; n&agrave;y hết hạn sau " + VerificationCode.RESET_MINUTES + " ph&uacute;t "
+                + "v&agrave; chỉ sử dụng được một lần.</p>\r\n"
+                + "<p>Nếu bạn kh&ocirc;ng y&ecirc;u cầu đặt lại mật khẩu, bạn c&oacute; thể bỏ qua email n&agrave;y.</p>\r\n"
+                + "<p>Đ&acirc;y l&agrave; email tự động, vui l&ograve;ng kh&ocirc;ng phản hồi email n&agrave;y.</p>\r\n"
+                + "<p>Tr&acirc;n trọng cảm ơn.</p>";
+    }
+
     @Override
     public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
+        return "Emails a one-time password reset code";
+    }
 }
